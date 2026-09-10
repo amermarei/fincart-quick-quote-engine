@@ -10,12 +10,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { shipmentSchema } from '@qqe/shared';
-import type { Request, Response } from 'express';
+import type { Response } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import type { AuthenticatedMerchant } from '../auth/auth.service';
-import { QuotesService, type QuoteStreamEvent } from './quotes.service';
-
-type AuthedRequest = Request & { user: AuthenticatedMerchant };
+import { QuotesService } from './quotes.service';
+import type { AuthedRequest, QuoteStreamEvent } from './quotes.types';
 
 function writeSse(res: Response, event: string, data: unknown): void {
   res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);

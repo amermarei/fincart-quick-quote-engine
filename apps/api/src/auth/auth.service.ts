@@ -3,13 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { loginResponseSchema, type LoginRequest, type LoginResponse, type MerchantTier } from '@qqe/shared';
 import { PrismaService } from '../prisma/prisma.service';
-
-export interface AuthenticatedMerchant {
-  id: string;
-  email: string;
-  tier: MerchantTier;
-  carrierAccountRef: string;
-}
+import type { AuthenticatedMerchant } from './auth.types';
 
 const DB_TIER_TO_SHARED: Record<string, MerchantTier> = {
   STANDARD: 'standard',

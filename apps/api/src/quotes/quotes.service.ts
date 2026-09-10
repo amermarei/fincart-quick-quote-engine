@@ -1,15 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import type { CarrierId, Shipment } from '@qqe/shared';
-import type { AuthenticatedMerchant } from '../auth/auth.service';
+import type { AuthenticatedMerchant } from '../auth/auth.types';
 import type { CarrierOutcome, MerchantContext } from '../carriers/types';
 import { CarrierStrategyContext } from '../carriers/carrier-strategy.context';
 import { PrismaService } from '../prisma/prisma.service';
-
-export type QuoteStreamEvent =
-  | { event: 'request'; requestId: string }
-  | { event: 'done'; requestId: string }
-  | (CarrierOutcome & { event: 'carrier' });
+import type { QuoteStreamEvent } from './quotes.types';
 
 @Injectable()
 export class QuotesService {
