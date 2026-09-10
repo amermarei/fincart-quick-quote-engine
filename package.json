@@ -13,7 +13,9 @@
     "dev": "npm run dev:api & npm run dev:web",
     "build:api": "npm run build --workspace @qqe/api",
     "build:web": "npm run build --workspace @qqe/web",
-    "build": "npm run build --workspace @qqe/shared && npm run build --workspace @qqe/starter && npm run build:api && npm run build:web",
+    "build:shared": "npm run build --workspace @qqe/shared",
+    "build:starter": "npm run build --workspace @qqe/starter",
+    "build": "npm run build:shared && npm run build:starter && npm run build:api && npm run build:web",
     "typecheck": "tsc -p apps/api/tsconfig.json --noEmit && tsc -p apps/web/tsconfig.json --noEmit && tsc -p packages/shared/tsconfig.json --noEmit && tsc -p packages/starter/tsconfig.json --noEmit",
     "test": "vitest run",
     "bench": "tsx scripts/bench.ts"

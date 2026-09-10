@@ -10,6 +10,10 @@ COPY packages/shared/package.json packages/shared/package.json
 COPY packages/starter/package.json packages/starter/package.json
 RUN npm ci --no-audit --no-fund --fetch-retries=5 --fetch-retry-mintimeout=10000 --fetch-retry-maxtimeout=60000
 COPY . .
+# The API consumes the built workspace packages (@qqe/shared, @qqe/starter)
+# through their dist/ mains, so they MUST be built inside the container —
+# dist/ is gitignored and not present in a fresh clone.
+RUN npm run build:shared && npm run build:starter
 # npm ci's postinstall runs prisma generate BEFORE the schema is in the
 # image, so the client is generated explicitly here.
 RUN npx prisma generate --schema apps/api/prisma/schema.prisma
