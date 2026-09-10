@@ -1,4 +1,4 @@
-import rateCardJson from './rate-card.json';
+import rateCardJson from '../../../../packages/starter/rate-cards/meridian.json';
 
 /**
  * Typed view over the contracted Meridian rate card. The JSON file is DATA

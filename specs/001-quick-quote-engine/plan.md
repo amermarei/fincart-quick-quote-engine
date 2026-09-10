@@ -37,7 +37,7 @@ tsx (bench script runner).
 suite (reset-guarded), and a self-contained `postgres:16` service in
 docker-compose for the evaluator. Money is integer minor units; measures are
 `Decimal`. Vendor SDKs and the Meridian rate card live as read-only files in
-`packages/vendors` and `apps/api` resources.
+`packages/starter` (the starter material, renamed to match the brief) and `apps/api` resources.
 
 **Testing**: Vitest across the monorepo — rate-card boundary unit tests with exact
 answers, aggregation partial-failure/slow-carrier tests, Supertest integration test
@@ -49,7 +49,7 @@ drive time from `quotedAt`.
 development commands (bench, tests).
 
 **Project Type**: Web service + SPA in an npm-workspaces monorepo
-(`apps/api`, `apps/web`, `packages/shared`, `packages/vendors`).
+(`apps/api`, `apps/web`, `packages/shared`, `packages/starter`).
 
 **Performance Goals**: p95 time-to-first-rate < 800 ms and p95 time-to-complete
 < 3,500 ms, both measured at the client over 200 sequential US → GB quote requests
@@ -77,7 +77,7 @@ carriers, a single local evaluator; no remote deployment, no signup/reset/refres
 | III. Client-Measured Latency Contract | PASS | `POST /quotes` responds as an SSE stream; carriers fanned out in parallel with Meridian computed locally (first rate well under 800 ms); per-carrier and overall deadline budgets bound completion; `npm run bench` measures p95 at the client (research.md R2, R4) |
 | IV. Partial Results Over Hung Requests | PASS | Per-carrier deadline + overall request budget; Atlas 429 retried only when it fits the budget; given-up carriers named as failures in the stream and UI; retry path in the frontend (research.md R4) |
 | V. Shared-Schema Validation | PASS | Zod schemas in `packages/shared` used by both server and React Hook Form; no carrier coverage in schemas — an unserved lane is a valid empty result |
-| Non-negotiable constraints | PASS | Vendor files copied into `packages/vendors` preserving their internal `lib/` + `providers/` layout so the rng import line needs no change at all; `$semantics` authoritative for Meridian; tier and carrier account reference resolved from the JWT + merchant record, never the request body; automated tenant-isolation test; seeded standard + enterprise merchants documented in the README; local docker-compose delivery |
+| Non-negotiable constraints | PASS | Starter files copied into `packages/starter` preserving their internal `lib/` + `providers/` + `rate-cards/` layout so the rng import line needs no change at all; `$semantics` authoritative for Meridian; tier and carrier account reference resolved from the JWT + merchant record, never the request body; automated tenant-isolation test; seeded standard + enterprise merchants documented in the README; local docker-compose delivery |
 
 No violations at Phase 0 entry.
 
@@ -152,7 +152,7 @@ apps/
     tests/                      # Testing Library frontend test
 packages/
   shared/                       # Zod schemas + types shared client/server (shipment, rate, auth)
-  vendors/                      # copied read-only starter SDKs; internal lib/ + providers/ layout kept so the rng import line is unchanged
+  starter/                      # copied read-only starter material (@qqe/starter); internal lib/ + providers/ + rate-cards/ layout kept so the rng import line is unchanged
 scripts/
   └── bench.ts                  # npm run bench — 200 sequential requests, client-side p95 report
 docker-compose.yml              # api + web: one-command start, migrations + seed on boot

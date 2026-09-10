@@ -12,7 +12,7 @@ design decision the brief leaves open, each with rationale and alternatives.
 ## R1. Repository layout — npm-workspaces monorepo
 
 - **Decision**: npm workspaces with `apps/api` (NestJS), `apps/web` (React/Vite),
-  `packages/shared` (Zod schemas), `packages/vendors` (read-only starter SDKs).
+  `packages/shared` (Zod schemas), `packages/starter` (read-only starter SDKs + rate card).
 - **Rationale**: the brief mandates a `packages/shared` workspace for client/server
   validation schemas, which forces a workspace root; npm workspaces ship with the
   Node/npm the evaluator already has (zero extra tooling, `npm install` at root
@@ -46,7 +46,7 @@ design decision the brief leaves open, each with rationale and alternatives.
   before the `AppModule` import; provider modules are only reachable through the
   module graph, so `PROVIDER_SEED` is guaranteed set before `rngFor()` runs at module
   load. Tests set the seed the same way in their bootstrap file, before importing
-  anything that (transitively) imports `packages/vendors`.
+  anything that (transitively) imports `packages/starter`.
 - **Rationale**: the brief warns the seed is read at module load and silently ignored
   otherwise; the Nest CLI compiles to CommonJS, where import order is execution order,
   so a first-position dotenv import is sufficient and provable in one line.
@@ -61,8 +61,8 @@ design decision the brief leaves open, each with rationale and alternatives.
 - **Decision**: all three carriers start in parallel the moment a request is
   validated. Meridian is computed locally (first rate, effectively instant).
   Each remote carrier gets a per-carrier deadline (`CARRIER_TIMEOUT_MS`, default
-  ≈ 3000 ms — the SDKs sleep 200–3000 ms); the request as a whole gets an overall
-  budget (`REQUEST_DEADLINE_MS`, default ≈ 3400 ms). On an Atlas 429 the retry is
+  â‰ˆ 3000 ms — the SDKs sleep 200–3000 ms); the request as a whole gets an overall
+  budget (`REQUEST_DEADLINE_MS`, default â‰ˆ 3400 ms). On an Atlas 429 the retry is
   honoured only if `elapsed + retryAfterMs + worst-case latency` still fits the
   remaining budget; otherwise the carrier is given up on and reported. Whatever
   resolved by budget end is emitted; unresolved carriers are emitted as given-up; the
@@ -73,7 +73,7 @@ design decision the brief leaves open, each with rationale and alternatives.
   budget-aware give-up rule is the only way both p95 numbers hold. Partial results
   are good results; nothing hangs.
 - **Alternatives considered**: sequential fastest-first (kills the complete budget —
-  3 s + 3 s ≫ 3.5 s); unbounded retries with backoff (hangs, violates the
+  3 s + 3 s â‰« 3.5 s); unbounded retries with backoff (hangs, violates the
   contract); fixed single timeout without budget arithmetic (a 429 retry landing at
   3.4 s still completes past the deadline).
 
@@ -81,13 +81,13 @@ design decision the brief leaves open, each with rationale and alternatives.
 
 - **Decision**: a single `money.ts` helper module. All merchant-facing amounts are
   integer cents. `roundHalfAwayFromZero(x) = Math.sign(x) * Math.round(Math.abs(x))`
-  (JS `Math.round` is half-toward-+∞, wrong for negatives). Atlas (CAD, major units,
+  (JS `Math.round` is half-toward-+âˆž, wrong for negatives). Atlas (CAD, major units,
   tax-exclusive): each component is converted separately —
   `usdCents = roundHalfAway(cadMajor * 100 * fx)` — never a converted total with
   components derived. SwiftPost (USD minor units, tax-inclusive): base =
   `amount - tax_amount`, total = `amount`, no conversion. Meridian computes entirely
   in minor units, rounding only where `$semantics` says (fuel before cap, tax last).
-  Request-side unit conversions to vendors (`kg → lb`, `cm → in`) pass unrounded
+  Request-side unit conversions to vendors (`kg â†’ lb`, `cm â†’ in`) pass unrounded
   values with the exact constants 1 kg = 2.20462262 lb, 1 in = 2.54 cm.
 - **Rationale**: the grader checks arithmetic against reference cases; every rounding
   point is pinned in the brief. Keeping one helper module makes each pinned rule a
@@ -120,7 +120,7 @@ design decision the brief leaves open, each with rationale and alternatives.
 ## R7. Persistence — PostgreSQL (Aiven + compose) via Prisma
 
 - **Decision**: PostgreSQL via Prisma. The application database is the hosted
-  Aiven instance (`.env` → `DATABASE_URL`); the docker-compose deliverable spins up
+  Aiven instance (`.env` â†’ `DATABASE_URL`); the docker-compose deliverable spins up
   its own `postgres:16` service so the evaluator's stack is self-contained. Tests
   run against a dedicated `qqe_test` database on the same Aiven instance (a guard
   refuses to run if the DB name is not `qqe_test`). Money is stored as integer
@@ -181,10 +181,10 @@ design decision the brief leaves open, each with rationale and alternatives.
 
 - **Decision**: one Vitest workspace config across `apps/api`, `apps/web`,
   `packages/shared`. Rate-card logic is tested with exact-answer boundary cases
-  (weight-break edges 1/5/20 kg, 0.5 kg chargeable round-up 6.01 → 6.5, fuel cap
+  (weight-break edges 1/5/20 kg, 0.5 kg chargeable round-up 6.01 â†’ 6.5, fuel cap
   round-then-cap, 120 cm strictly-greater oversize, remote-prefix case/whitespace
   matching, cutoff-at-boundary transit, holiday skipping, half-up rounding
-  745.5 → 746). Aggregation is tested for a partial-failure case and a
+  745.5 â†’ 746). Aggregation is tested for a partial-failure case and a
   slow-carrier case using the seeded vendors (fixed `PROVIDER_SEED`, `quotedAt`
   fixtures — no clock). One Supertest integration test hits a real HTTP endpoint
   end-to-end. The tenant-isolation test proves merchant A cannot read merchant B's
@@ -202,9 +202,9 @@ design decision the brief leaves open, each with rationale and alternatives.
 ## R11. Benchmark — `npm run bench`, client-side measurement
 
 - **Decision**: a standalone `scripts/bench.ts` (run with tsx) that logs in, fires
-  200 sequential `POST /quotes` requests on the US → GB lane with a fixed
+  200 sequential `POST /quotes` requests on the US â†’ GB lane with a fixed
   `PROVIDER_SEED`, and measures — from the client — time-to-first-`rate`-event and
-  time-to-`done`-event per request, reporting p95 for both. Run time ≈ 10 minutes,
+  time-to-`done`-event per request, reporting p95 for both. Run time â‰ˆ 10 minutes,
   as the brief predicts.
 - **Rationale**: both contract numbers are defined "measured at the client, not
   server-side", so the only honest measurement point is the bench script's own
@@ -214,15 +214,15 @@ design decision the brief leaves open, each with rationale and alternatives.
   parallel requests (methodology mismatch — the 200 are sequential); k6/autocannon
   (another tool to install; a 60-line tsx script is easier to read and reproduce).
 
-## R12. Vendor SDK placement — `packages/vendors`, layout preserved
+## R12. Starter material placement — `packages/starter`, layout preserved
 
 - **Decision**: copy `starter/lib/rng.ts`, `starter/providers/swiftpost.ts`,
-  `starter/providers/atlas.ts` into `packages/vendors` keeping their internal
-  relative layout (`lib/`, `providers/`), so `import { rngFor, sleep } from
-  '../lib/rng'` resolves unchanged — the one line the brief permits changing is not
-  changed at all. The package compiles under `tsc --strict` with `@types/node`.
-  `starter/rate-cards/meridian.json` is copied as a resource into
-  `apps/api/src/meridian/` and loaded as data only.
+  `starter/providers/atlas.ts`, and `starter/rate-cards/meridian.json` into
+  `packages/starter` keeping their internal relative layout (`lib/`, `providers/`,
+  `rate-cards/`), so `import { rngFor, sleep } from '../lib/rng'` resolves
+  unchanged — the one line the brief permits changing is not changed at all. The
+  package compiles under `tsc --strict` with `@types/node`; the rate card is loaded
+  as data only by the Meridian loader in `apps/api/src/meridian/`.
 - **Rationale**: the brief says the starter type-checks as shipped and that a
   strict-mode failure means the path is wrong; preserving the internal layout makes
   that structurally true. Isolating them in their own package makes "read-only"

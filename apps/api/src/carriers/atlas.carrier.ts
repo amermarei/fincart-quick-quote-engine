@@ -1,4 +1,4 @@
-import { AtlasApiError, atlasGetRates } from '@qqe/vendors';
+import { AtlasApiError, atlasGetRates } from '@qqe/starter';
 import { DateTime } from 'luxon';
 import type { Rate, Shipment } from '@qqe/shared';
 import { cadMajorToUsdMinor, cmToIn, kgToLb } from '../common/money';

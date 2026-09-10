@@ -26,7 +26,7 @@ export default defineWorkspace([
       resolve: {
         alias: {
           '@qqe/shared': resolve(root, 'packages/shared/src/index.ts'),
-          '@qqe/vendors': resolve(root, 'packages/vendors/index.ts'),
+          '@qqe/starter': resolve(root, 'packages/starter/index.ts'),
         },
       },
     },

@@ -23,7 +23,7 @@
     "@nestjs/platform-express": "^10.4.4",
     "@prisma/client": "^5.20.0",
     "@qqe/shared": "*",
-    "@qqe/vendors": "*",
+    "@qqe/starter": "*",
     "bcryptjs": "^2.4.3",
     "dotenv": "^16.4.5",
     "luxon": "^3.5.0",

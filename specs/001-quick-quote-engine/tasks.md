@@ -25,10 +25,10 @@ Monorepo per plan.md "Project Structure":
 - Backend: `apps/api/src/…`, integration tests `apps/api/test/…`
 - Frontend: `apps/web/src/…`, frontend tests `apps/web/tests/…`
 - Shared Zod schemas: `packages/shared/src/…`
-- Read-only vendor SDKs: `packages/vendors/…` (copied from `starter/`, internal `lib/` + `providers/` layout preserved)
+- Read-only starter SDKs: `packages/starter/…` (copied from `starter/`, internal `lib/` + `providers/` + `rate-cards/` layout preserved; package name `@qqe/starter`)
 - Bench: `scripts/bench.ts`; orchestration: `docker-compose.yml`
 
-**Read-only rule (constitution)**: never modify `packages/vendors/providers/swiftpost.ts`, `packages/vendors/providers/atlas.ts`, `packages/vendors/lib/rng.ts` — preserving their internal layout means the `../lib/rng` import line stays valid and needs no change.
+**Read-only rule (constitution)**: never modify `packages/starter/providers/swiftpost.ts`, `packages/starter/providers/atlas.ts`, `packages/starter/lib/rng.ts`, or `packages/starter/rate-cards/meridian.json` — preserving the internal layout means the `../lib/rng` import line stays valid and needs no change.
 
 ---
 
@@ -37,9 +37,9 @@ Monorepo per plan.md "Project Structure":
 **Purpose**: Workspace skeleton — every app compiles before any feature code exists.
 
 - [x] T001 Create monorepo root in `package.json`: private, `"workspaces": ["apps/*", "packages/*"]`, scripts `dev`, `test` (vitest run), `bench` (tsx scripts/bench.ts); create `tsconfig.base.json` with `"strict": true`, `"module": "commonjs"` for API/Node code; create `.gitignore` (node_modules, dist, .env)
-- [x] T002 [P] Copy read-only vendor files preserving layout into `packages/vendors/`: `starter/lib/rng.ts` → `packages/vendors/lib/rng.ts`, `starter/providers/swiftpost.ts` → `packages/vendors/providers/swiftpost.ts`, `starter/providers/atlas.ts` → `packages/vendors/providers/atlas.ts`; add `packages/vendors/package.json` (name `@qqe/vendors`) and `packages/vendors/tsconfig.json` (strict, `@types/node` installed); VERIFIED with `npx tsc --noEmit -p packages/vendors` → 0 errors (per the brief, a strict failure here means a path is wrong — fix the copy location, never the file)
+- [x] T002 [P] Copy read-only starter files preserving layout into `packages/starter/`: `starter/lib/rng.ts` → `packages/starter/lib/rng.ts`, `starter/providers/swiftpost.ts` → `packages/starter/providers/swiftpost.ts`, `starter/providers/atlas.ts` → `packages/starter/providers/atlas.ts`, `starter/rate-cards/meridian.json` → `packages/starter/rate-cards/meridian.json`; add `packages/starter/package.json` (name `@qqe/starter`) and `packages/starter/tsconfig.json` (strict, `@types/node` installed); VERIFIED with `npx tsc --noEmit -p packages/starter` → 0 errors (per the brief, a strict failure here means a path is wrong — fix the copy location, never the file)
 - [x] T003 [P] Create shared schema package `packages/shared/package.json` (name `@qqe/shared`, deps: `zod`) and `packages/shared/src/index.ts`
-- [x] T004 [P] Scaffold NestJS app `apps/api/package.json` + `apps/api/tsconfig.json` (extends base, strict): deps `@nestjs/*`, `@nestjs/jwt`, `@nestjs/passport`, `passport`, `passport-jwt`, `@prisma/client`, `bcryptjs`, `luxon`, `rxjs`, workspace deps `@qqe/shared`, `@qqe/vendors`; `apps/api/src/main.ts` FIRST line is `import 'dotenv/config';` before the `AppModule` import (constitution II: `PROVIDER_SEED` is read at provider module load); VERIFIED `npm install` at root + `tsc --noEmit` → 0 errors. Note: runtime runs the tsc-compiled output (`node dist/.../main.js`) because tsx/esbuild cannot emit NestJS's required decorator metadata
+- [x] T004 [P] Scaffold NestJS app `apps/api/package.json` + `apps/api/tsconfig.json` (extends base, strict): deps `@nestjs/*`, `@nestjs/jwt`, `@nestjs/passport`, `passport`, `passport-jwt`, `@prisma/client`, `bcryptjs`, `luxon`, `rxjs`, workspace deps `@qqe/shared`, `@qqe/starter`; `apps/api/src/main.ts` FIRST line is `import 'dotenv/config';` before the `AppModule` import (constitution II: `PROVIDER_SEED` is read at provider module load); VERIFIED `npm install` at root + `tsc --noEmit` → 0 errors. Note: runtime runs the tsc-compiled output (`node dist/.../main.js`) because tsx/esbuild cannot emit NestJS's required decorator metadata
 - [x] T005 [P] Scaffold Vite React app `apps/web/` (Vite react-ts template) with `apps/web/package.json`: deps `react-hook-form`, `@hookform/resolvers`, `@qqe/shared`; Tailwind v3 minimal (`tailwind.config.cjs`, `postcss.config.cjs`, `src/index.css` with `@tailwind` directives); VERIFIED `npm run build --workspace @qqe/web` succeeds
 - [x] T006 [P] Add test + bench tooling: root `vitest.workspace.ts` (projects: `api` [node, forks/singleFork, fileParallelism false], `web` [jsdom + RTL cleanup], `shared`); root devDeps `vitest`, `tsx`, `supertest`, `@testing-library/react`, `@testing-library/jest-dom`, `jsdom`, `cross-env`
 
@@ -56,7 +56,7 @@ Monorepo per plan.md "Project Structure":
 - [x] T011 [P] Implement money helpers in `apps/api/src/common/money.ts` per research.md R5: `roundHalfAwayFromZero` (sign·round(abs); 745.5 → 746, −745.5 → −746), `cadMajorToUsdMinor` (per-component), `kgToLb` (×2.20462262), `cmToIn` (/2.54) unrounded, `roundUpToHalfKg` (0.5 kg multiple)
 - [x] T012 [P] Implement time helpers in `apps/api/src/common/time.ts` (Luxon): `localTimeIn`, `atOrAfterCutoff` (at counts as after), `addBusinessDays` (Mon–Fri, skipping holiday ISO dates, starting strictly after the start date); no `Date.now()` anywhere in pricing
 - [x] T013 Implement auth module in `apps/api/src/auth/`: `POST /auth/login` (shared `loginRequestSchema`, bcryptjs compare, JWT with merchant id as `sub`, 401 on bad credentials) and `JwtAuthGuard` whose strategy resolves the merchant from Prisma (tier + carrierAccountRef from the record per request, never token claims or body); VERIFIED over real HTTP: login 201/tier standard, wrong password 401
-- [x] T014 Copy `starter/rate-cards/meridian.json` → `apps/api/src/meridian/rate-card.json` (data only) + typed loader `apps/api/src/meridian/load-rate-card.ts` exposing zones, per-zone rates, surcharges, and holidays; `$semantics` authoritative
+- [x] T014 Copy `starter/rate-cards/meridian.json` → `packages/starter/rate-cards/meridian.json` (data only, part of the read-only starter package) + typed loader `apps/api/src/meridian/load-rate-card.ts` exposing zones, per-zone rates, surcharges, and holidays; `$semantics` authoritative
 
 **Checkpoint**: `npx tsc --noEmit` clean in all workspaces; login works; DB migrated + seeded.
 
@@ -169,8 +169,8 @@ Monorepo per plan.md "Project Structure":
 
 **Purpose**: Cross-story verification before submission.
 
-- [x] T044 `npm run typecheck` in every workspace → 0 errors (vendors type-check unmodified; api tests type-check with `module: esnext` for top-level await)
-- [x] T045 Constitution sweep: `packages/vendors/` byte-identical to `starter/` (only the added `index.ts` wrapper differs); shared schemas contain no carrier-coverage rules (only the "deliberately absent" comment); no merchant identity ever read from the request body (tier/accountRef resolve from JWT + merchant record); all merchant-facing amounts integer USD cents
+- [x] T044 `npm run typecheck` in every workspace → 0 errors (starter files type-check unmodified; api tests type-check with `module: esnext` for top-level await)
+- [x] T045 Constitution sweep: `packages/starter/` byte-identical to `starter/` across lib/, providers/, rate-cards/ (only the added `index.ts` wrapper differs); shared schemas contain no carrier-coverage rules (only the "deliberately absent" comment); no merchant identity ever read from the request body (tier/accountRef resolve from JWT + merchant record); all merchant-facing amounts integer USD cents
 - [x] T046 Quickstart scenarios: V1 login ✓, V2 stream + latency ✓ (bench), V3 determinism ✓ (×3 suite), V4 tier pricing ✓ (exactness suite), V5 no-service ✓, V6 partial + retry ✓, V7 tenant isolation ✓, V8 bench ✓ (full 200-run), V9 repeated tests ✓ — all validated in this environment
 
 ---
@@ -247,7 +247,7 @@ Task: "T016 Frontend test apps/web/tests/quote-panel.test.tsx"
 
 - Execute tasks strictly in ID order within a phase; never start a story before its checkpoint
 - When a task says VERIFY, run the command before checking the box — do not assume
-- Never modify `packages/vendors/**` or `apps/api/src/meridian/rate-card.json`
+- Never modify `packages/starter/**` — lib/, providers/, rate-cards/ are read-only
 - When a pricing test disagrees with the engine, the EXPECTED value wins (re-read `$semantics`)
 - All commands run from the repo root unless the task says otherwise
 
@@ -258,7 +258,7 @@ Task: "T016 Frontend test apps/web/tests/quote-panel.test.tsx"
 - [P] = different files, no dependencies; [Story] label maps to spec.md user stories
 - Pinned constants live inline in the tasks AND in the referenced docs — they are the same numbers; if they ever disagree, `Task.pdf` + `$semantics` win
 - Tests are mandated by the spec (FR-032–FR-036); they were not optional here
-- Commit after each task or logical group; `packages/vendors` stayed byte-identical to `starter/`
+- Commit after each task or logical group; `packages/starter` stayed byte-identical to `starter/`
 - **Execution record**: all 46 tasks completed and verified. The database was
   iterated twice per stakeholder direction: initially SQLite (no Docker in the
   sandbox), then switched to PostgreSQL — the stakeholder's hosted Aiven instance

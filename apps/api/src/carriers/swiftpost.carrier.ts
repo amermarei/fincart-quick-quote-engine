@@ -1,4 +1,4 @@
-import { SwiftPostError, swiftPostQuote } from '@qqe/vendors';
+import { SwiftPostError, swiftPostQuote } from '@qqe/starter';
 import { DateTime } from 'luxon';
 import type { Rate, Shipment } from '@qqe/shared';
 import type { Carrier, CarrierOutcome, MerchantContext } from './types';

@@ -16,7 +16,7 @@
     "baseUrl": ".",
     "paths": {
       "@qqe/shared": ["packages/shared/src/index.ts"],
-      "@qqe/vendors": ["packages/vendors/index.ts"]
+      "@qqe/starter": ["packages/starter/index.ts"]
     }
   }
 }
