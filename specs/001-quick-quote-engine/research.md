@@ -250,3 +250,27 @@ design decision the brief leaves open, each with rationale and alternatives.
   (three different shapes to maintain for one call site); computing transit
   outside the pricing engine (splits `$semantics` logic across modules — worse
   testability against the boundary cases).
+
+## R14. Carrier strategy pattern (post-implementation refinement)
+
+- **Decision**: the carrier integrations are formalized as the strategy pattern.
+  `CarrierStrategy` is the strategy role (`id` + `run(shipment, merchantContext)`);
+  the three carriers are `@Injectable` strategy classes (Meridian, SwiftPost,
+  Atlas) registered in `CarriersModule` and published through the multi-provider
+  `CARRIER_STRATEGIES` token; `CarrierStrategyContext` is the context — it owns the
+  registered set, exposes runtime `add` / `remove` / `has` selection, and executes
+  `runAll` with the per-carrier deadline and the budget-aware 429 retry policy.
+  `QuotesService` consumes the context, so the orchestrator never hardcodes a
+  carrier list and new carriers can be added by providing a strategy + registering
+  it in the module (or at runtime via `context.add`).
+- **Rationale**: the product must quote *any* carrier Fincart integrates; keeping
+  the strategy set injectable and swappable (tests prove `remove` excludes a
+  strategy, DI injects the full set) makes the quote pipeline open for extension
+  without touching the orchestration, matching the brief's "carriers do not
+  resemble each other" framing. The deadline/retry policy moved into the context,
+  one level above the strategies, so strategies stay pure per-carrier pricing.
+- **Alternatives considered**: keep the previous plain-object list (worked, but the
+  set was hardcoded in the service and not extensible at runtime); a full
+  strategy-selection-by-config (env-driven carrier list) — over-engineering for
+  three fixed carriers; per-strategy decorator registration (framework magic
+  without the explicit DI token's clarity).

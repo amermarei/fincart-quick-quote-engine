@@ -14,6 +14,10 @@ import { describe, expect, it, afterEach } from 'vitest';
 process.env.PROVIDER_SEED = '3';
 
 const { QuotesService } = await import('./quotes.service');
+const { CarrierStrategyContext } = await import('../carriers/carrier-strategy.context');
+const { MeridianCarrierStrategy } = await import('../carriers/meridian.carrier');
+const { SwiftPostCarrierStrategy } = await import('../carriers/swiftpost.carrier');
+const { AtlasCarrierStrategy } = await import('../carriers/atlas.carrier');
 
 
 type CarrierOutcome = import('../carriers/types').CarrierOutcome;
@@ -36,13 +40,19 @@ const prismaMock = {
   quoteRate: { create: async () => ({}) },
 } as never;
 
+const carriers = new CarrierStrategyContext([
+  new MeridianCarrierStrategy(),
+  new SwiftPostCarrierStrategy(),
+  new AtlasCarrierStrategy(),
+]);
+
 type NonQuotedOutcome = Extract<CarrierOutcome, { status: 'FAILED' | 'NO_SERVICE' | 'GIVEN_UP' }>;
 
 async function runQuote(overrides?: { carrierTimeoutMs?: string; deadlineMs?: string; shipment?: typeof shipment }) {
   if (overrides?.carrierTimeoutMs !== undefined) process.env.CARRIER_TIMEOUT_MS = overrides.carrierTimeoutMs;
   if (overrides?.deadlineMs !== undefined) process.env.REQUEST_DEADLINE_MS = overrides.deadlineMs;
   const events: Array<CarrierOutcome | { event: string; requestId: string }> = [];
-  const service = new QuotesService(prismaMock);
+  const service = new QuotesService(prismaMock, carriers);
   await service.quote(overrides?.shipment ?? shipment, merchant, (e) => events.push(e));
   return events;
 }

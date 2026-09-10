@@ -19,8 +19,13 @@ export type CarrierOutcome =
       retryAfterMs?: number;
     };
 
-export interface Carrier {
-  id: CarrierId;
+/**
+ * Strategy role (strategy pattern): one strategy per carrier. Concrete
+ * strategies are provided by NestJS DI and selected/registered at runtime
+ * through CarrierStrategyContext — the orchestrator never hardcodes a list.
+ */
+export interface CarrierStrategy {
+  readonly id: CarrierId;
   run(shipment: Shipment, ctx: MerchantContext): Promise<CarrierOutcome>;
 }
 

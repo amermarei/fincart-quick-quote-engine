@@ -2,10 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import type { CarrierId, Shipment } from '@qqe/shared';
 import type { AuthenticatedMerchant } from '../auth/auth.service';
-import type { Carrier, CarrierOutcome, MerchantContext } from '../carriers/types';
-import { atlasCarrier } from '../carriers/atlas.carrier';
-import { swiftPostCarrier } from '../carriers/swiftpost.carrier';
-import { meridianCarrier } from '../carriers/meridian.carrier';
+import type { CarrierOutcome, MerchantContext } from '../carriers/types';
+import { CarrierStrategyContext } from '../carriers/carrier-strategy.context';
 import { PrismaService } from '../prisma/prisma.service';
 
 export type QuoteStreamEvent =
@@ -13,24 +11,22 @@ export type QuoteStreamEvent =
   | { event: 'done'; requestId: string }
   | (CarrierOutcome & { event: 'carrier' });
 
-const CARRIERS: Carrier[] = [meridianCarrier, swiftPostCarrier, atlasCarrier];
-
-/** Worst-case vendor latency (SDK sleeps 200-3000 ms) — used for budget math. */
-const WORST_CASE_VENDOR_LATENCY_MS = 3000;
-
 @Injectable()
 export class QuotesService {
   private readonly logger = new Logger(QuotesService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly carriers: CarrierStrategyContext,
+  ) {}
 
   /**
-   * Runs all three carriers in parallel, streaming outcomes to the client
-   * the moment they settle, and NEVER lets the database block the stream:
-   * persistence happens in the background and is awaited only after `done`
-   * has been emitted (the latency contract is client-measured; a remote DB
-   * round trip must not delay a single rate event). A partial result is a
-   * good result; a hung request is not (constitution IV).
+   * Runs every registered carrier strategy in parallel, streaming outcomes
+   * to the client the moment they settle, and NEVER lets the database block
+   * the stream: persistence happens in the background and is awaited only
+   * after `done` has been emitted (the latency contract is client-measured;
+   * a remote DB round trip must not delay a single rate event). A partial
+   * result is a good result; a hung request is not (constitution IV).
    */
   async quote(
     shipment: Shipment,
@@ -43,7 +39,6 @@ export class QuotesService {
 
     const carrierTimeoutMs = Number(process.env.CARRIER_TIMEOUT_MS ?? 3000);
     const overallDeadlineMs = Number(process.env.REQUEST_DEADLINE_MS ?? 3400);
-    const startedAt = Date.now();
     const ctx: MerchantContext = {
       tier: merchant.tier,
       carrierAccountRef: merchant.carrierAccountRef,
@@ -59,48 +54,27 @@ export class QuotesService {
       onEvent({ event: 'carrier', ...outcome });
     };
 
-    const runCarrier = async (carrier: Carrier): Promise<void> => {
-      let outcome = await this.runWithTimeout(carrier, fullShipment, ctx, carrierTimeoutMs);
-
-      if (
-        outcome.status === 'FAILED' &&
-        outcome.errorCode === 'RATE_LIMITED' &&
-        outcome.retryAfterMs !== undefined
-      ) {
-        const elapsed = Date.now() - startedAt;
-        if (elapsed + outcome.retryAfterMs + WORST_CASE_VENDOR_LATENCY_MS <= overallDeadlineMs) {
-          outcome = await this.runWithTimeout(carrier, fullShipment, ctx, carrierTimeoutMs);
+    const giveUpUnsettled = (): void => {
+      for (const strategy of this.carriers.all) {
+        if (!settled.has(strategy.id)) {
+          finalize({
+            carrier: strategy.id,
+            status: 'GIVEN_UP',
+            errorCode: 'DEADLINE',
+            errorDetail: 'Overall request deadline reached',
+          });
         }
       }
-
-      finalize(outcome);
     };
 
-    const overallTimer = setTimeout(() => {
-      for (const carrier of CARRIERS) {
-        if (!settled.has(carrier.id)) {
-          finalize({
-            carrier: carrier.id,
-            status: 'GIVEN_UP',
-            errorCode: 'DEADLINE',
-            errorDetail: 'Overall request deadline reached',
-          });
-        }
-      }
-    }, overallDeadlineMs);
+    const overallTimer = setTimeout(giveUpUnsettled, overallDeadlineMs);
 
     try {
-      await Promise.all(CARRIERS.map(runCarrier));
-      for (const carrier of CARRIERS) {
-        if (!settled.has(carrier.id)) {
-          finalize({
-            carrier: carrier.id,
-            status: 'GIVEN_UP',
-            errorCode: 'DEADLINE',
-            errorDetail: 'Overall request deadline reached',
-          });
-        }
-      }
+      await this.carriers.runAll(fullShipment, ctx, {
+        carrierTimeoutMs,
+        onSettle: finalize,
+      });
+      giveUpUnsettled();
     } finally {
       clearTimeout(overallTimer);
     }
@@ -179,36 +153,5 @@ export class QuotesService {
     } else {
       await this.prisma.quoteRate.create({ data: common });
     }
-  }
-
-  private async runWithTimeout(
-    carrier: Carrier,
-    shipment: Shipment,
-    ctx: MerchantContext,
-    ms: number,
-  ): Promise<CarrierOutcome> {
-    return new Promise<CarrierOutcome>((resolve) => {
-      let done = false;
-      const timer = setTimeout(() => {
-        if (!done) {
-          done = true;
-          resolve({
-            carrier: carrier.id,
-            status: 'GIVEN_UP',
-            errorCode: 'CARRIER_TIMEOUT',
-            errorDetail: 'Carrier exceeded its per-carrier deadline',
-          });
-        }
-      }, ms);
-      void carrier
-        .run(shipment, ctx)
-        .then((outcome) => {
-          if (!done) {
-            done = true;
-            clearTimeout(timer);
-            resolve(outcome);
-          }
-        });
-    });
   }
 }

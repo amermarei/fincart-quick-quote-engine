@@ -1,10 +1,11 @@
+import { Injectable } from '@nestjs/common';
 import { SwiftPostError, swiftPostQuote } from '@qqe/starter';
 import { DateTime } from 'luxon';
 import type { Rate, Shipment } from '@qqe/shared';
-import type { Carrier, CarrierOutcome, MerchantContext } from './types';
+import type { CarrierOutcome, CarrierStrategy, MerchantContext } from './types';
 
 /**
- * SwiftPost adapter.
+ * SwiftPost strategy.
  *
  * The vendor returns tax-INCLUSIVE USD minor units: amount already contains
  * tax, and tax_amount is the tax portion. So base = amount - tax_amount,
@@ -12,8 +13,10 @@ import type { Carrier, CarrierOutcome, MerchantContext } from './types';
  *
  * ETA: transit.days is CALENDAR days from the quote date.
  */
-export const swiftPostCarrier: Carrier = {
-  id: 'SWIFTPOST',
+@Injectable()
+export class SwiftPostCarrierStrategy implements CarrierStrategy {
+  readonly id = 'SWIFTPOST' as const;
+
   async run(shipment: Shipment, _ctx: MerchantContext): Promise<CarrierOutcome> {
     const quotedAt = shipment.quotedAt ?? new Date().toISOString();
     try {
@@ -71,5 +74,5 @@ export const swiftPostCarrier: Carrier = {
         errorDetail: err instanceof Error ? err.message : 'Unknown SwiftPost error',
       };
     }
-  },
-};
+  }
+}

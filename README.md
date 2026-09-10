@@ -4,6 +4,17 @@ Multi-carrier quote aggregation for Fincart: one authenticated endpoint quotes
 SwiftPost, Atlas Logistics, and Meridian Freight in parallel and streams the rates
 to a single-page React app as they arrive.
 
+## Architecture
+
+NestJS API + React SPA in an npm-workspaces monorepo (`apps/api`, `apps/web`,
+`packages/shared`, `packages/starter`). Carrier integrations are **strategy
+classes** (`MeridianCarrierStrategy`, `SwiftPostCarrierStrategy`,
+`AtlasCarrierStrategy`) executed by a `CarrierStrategyContext` — strategies are
+registered through NestJS DI and can be added or removed at runtime, so quoting a
+new carrier is one strategy class plus one registration. The read-only starter
+material (vendor SDKs + the Meridian rate card) lives untouched in
+`packages/starter`, matching the brief's `starter/` layout.
+
 ## Run it (under five minutes)
 
 Prerequisites: Docker (compose v2), Node 22 for the benchmark/test commands, and
@@ -95,7 +106,8 @@ npm test        # deterministic: resets the test DB, boots the API, runs everyth
 
 Covers: rate-card exactness boundaries (weight breaks, fuel cap, oversize/remote,
 handling waiver, rounding, per-component FX), transit/cutoff/holiday rules,
-determinism, aggregation partial-failure and slow-carrier give-up, the streaming
-endpoint over real HTTP, tenant isolation, and the frontend four states + retry.
+determinism, aggregation partial-failure and slow-carrier give-up, the carrier
+strategy registry (runtime add/remove/execution), the streaming endpoint over real
+HTTP, tenant isolation, and the frontend four states + retry.
 
 `PROMPTS.md` documents the AI assistance used.

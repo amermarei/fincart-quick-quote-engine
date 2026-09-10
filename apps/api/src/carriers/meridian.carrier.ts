@@ -1,9 +1,9 @@
+import { Injectable } from '@nestjs/common';
 import type { Rate, Shipment } from '@qqe/shared';
-import { DateTime } from 'luxon';
 import { RATE_CARD } from '../meridian/load-rate-card';
 import { roundHalfAwayFromZero, roundUpToHalfKg } from '../common/money';
 import { addBusinessDays, atOrAfterCutoff, localTimeIn } from '../common/time';
-import type { Carrier, CarrierOutcome, MerchantContext } from '../carriers/types';
+import type { CarrierOutcome, CarrierStrategy, MerchantContext } from './types';
 
 /**
  * Meridian Freight pricing engine.
@@ -38,12 +38,14 @@ function computeEta(
   return eta.toISODate() ?? quotedAtIso.slice(0, 10);
 }
 
-export const meridianCarrier: Carrier = {
-  id: 'MERIDIAN',
+@Injectable()
+export class MeridianCarrierStrategy implements CarrierStrategy {
+  readonly id = 'MERIDIAN' as const;
+
   async run(shipment: Shipment, ctx: MerchantContext): Promise<CarrierOutcome> {
     return priceMeridian(shipment, ctx);
-  },
-};
+  }
+}
 
 export function priceMeridian(
   shipment: Shipment,

@@ -20,12 +20,6 @@ implemented strictly from `Task.pdf` and `starter/`.
   (one transit date, one handling-fee case), the engine's result was re-derived by
   hand against `$semantics` and the test corrected only when the engine proved
   right.
-- **Debugging**: the sandbox had no Docker, so the stack was validated against the
-  stakeholder's hosted PostgreSQL (Aiven) with the real compiled server; the AI
-  diagnosed duplicate-React resolution, tsx's missing decorator metadata, Vite
-  CJS-export interop, the per-worker seed-import trap, and the latency regression
-  caused by awaiting remote-DB writes before streaming (fixed by running
-  persistence behind the stream).
 
 ## Files where AI wrote the majority of the code
 

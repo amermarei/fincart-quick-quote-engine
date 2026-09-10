@@ -1,11 +1,12 @@
+import { Injectable } from '@nestjs/common';
 import { AtlasApiError, atlasGetRates } from '@qqe/starter';
 import { DateTime } from 'luxon';
 import type { Rate, Shipment } from '@qqe/shared';
 import { cadMajorToUsdMinor, cmToIn, kgToLb } from '../common/money';
-import type { Carrier, CarrierOutcome, MerchantContext } from './types';
+import type { CarrierOutcome, CarrierStrategy, MerchantContext } from './types';
 
 /**
- * Atlas adapter.
+ * Atlas strategy.
  *
  * The vendor prices in CAD, MAJOR units, tax EXCLUSIVE. Each monetary
  * component (price, tax) is converted to USD cents separately at the fixed
@@ -26,8 +27,10 @@ function parseFxRate(currency: string): number {
   return rate;
 }
 
-export const atlasCarrier: Carrier = {
-  id: 'ATLAS',
+@Injectable()
+export class AtlasCarrierStrategy implements CarrierStrategy {
+  readonly id = 'ATLAS' as const;
+
   async run(shipment: Shipment, ctx: MerchantContext): Promise<CarrierOutcome> {
     const quotedAt = shipment.quotedAt ?? new Date().toISOString();
     try {
@@ -96,5 +99,5 @@ export const atlasCarrier: Carrier = {
         errorDetail: err instanceof Error ? err.message : 'Unknown Atlas error',
       };
     }
-  },
-};
+  }
+}
