@@ -1,0 +1,74 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Merchant {
+  id                String          @id @default(uuid())
+  email             String          @unique
+  passwordHash      String
+  tier              MerchantTier
+  carrierAccountRef String
+  createdAt         DateTime        @default(now())
+  quotes            QuoteRequest[]
+}
+
+enum MerchantTier {
+  STANDARD
+  PLUS
+  ENTERPRISE
+}
+
+model QuoteRequest {
+  id                  String       @id @default(uuid())
+  merchantId          String
+  merchant            Merchant     @relation(fields: [merchantId], references: [id])
+  originCountry       String
+  originPostcode      String
+  originTimezone      String
+  destinationCountry  String
+  destinationPostcode String
+  weightKg            Decimal
+  lengthCm            Decimal
+  widthCm             Decimal
+  heightCm            Decimal
+  quotedAt            DateTime
+  createdAt           DateTime     @default(now())
+  rates               QuoteRate[]
+}
+
+model QuoteRate {
+  id          String          @id @default(uuid())
+  requestId   String
+  request     QuoteRequest    @relation(fields: [requestId], references: [id])
+  carrier     CarrierId
+  status      QuoteRateStatus
+  service     String?
+  baseMinor   Int?
+  taxMinor    Int?
+  totalMinor  Int?
+  currency    String          @default("USD")
+  etaFrom     DateTime?
+  etaTo       DateTime?
+  errorCode   String?
+  errorDetail String?
+  arrivedAt   DateTime        @default(now())
+}
+
+enum CarrierId {
+  SWIFTPOST
+  ATLAS
+  MERIDIAN
+}
+
+enum QuoteRateStatus {
+  QUOTED
+  FAILED
+  NO_SERVICE
+  GIVEN_UP
+}

@@ -1,0 +1,40 @@
+{
+  "name": "quick-quote-engine",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Fincart Quick Quote Engine — multi-carrier quote aggregation with streaming results",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev --workspace @qqe/api",
+    "dev:web": "npm run dev --workspace @qqe/web",
+    "dev": "npm run dev:api & npm run dev:web",
+    "build:api": "npm run build --workspace @qqe/api",
+    "build:web": "npm run build --workspace @qqe/web",
+    "build": "npm run build --workspace @qqe/shared && npm run build --workspace @qqe/vendors && npm run build:api && npm run build:web",
+    "typecheck": "tsc -p apps/api/tsconfig.json --noEmit && tsc -p apps/web/tsconfig.json --noEmit && tsc -p packages/shared/tsconfig.json --noEmit && tsc -p packages/vendors/tsconfig.json --noEmit",
+    "test": "vitest run",
+    "bench": "tsx scripts/bench.ts"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.4.8",
+    "@testing-library/react": "^16.0.1",
+    "@testing-library/user-event": "^14.5.2",
+    "@types/node": "^22.5.0",
+    "@types/pg": "^8.23.1",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@types/supertest": "^6.0.2",
+    "@vitejs/plugin-react": "^4.3.1",
+    "cross-env": "^7.0.3",
+    "jsdom": "^25.0.0",
+    "pg": "^8.23.0",
+    "supertest": "^7.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.3",
+    "vitest": "^2.1.1"
+  }
+}

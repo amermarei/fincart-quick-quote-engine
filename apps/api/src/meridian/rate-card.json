@@ -1,0 +1,105 @@
+{
+  "carrier": "Meridian Freight",
+  "contract_ref": "FIN-MER-2026-B",
+  "currency": "USD",
+  "amounts_in": "minor_units",
+  "weight_unit": "kg",
+  "dimension_unit": "cm",
+  "tax_treatment": "exclusive",
+  "rounding": "half_up",
+
+  "$semantics": {
+    "rounding": "Every instruction below that says 'rounded' means round half away from zero (half-up): 745.5 becomes 746, -745.5 becomes -746. Do not use banker's rounding. Round only where an instruction says to; carry full precision everywhere else.",
+    "chargeable_weight": "max(actual_kg, (l*w*h)/volumetric_divisor), then rounded UP to the nearest multiple of 0.5 kg. A value already on a multiple of 0.5 is unchanged: 6.0 stays 6.0, 6.01 becomes 6.5.",
+    "weight_breaks": "Select the first break whose up_to_kg is >= chargeable weight (null = no upper bound). If the break has 'flat', that is the base. Otherwise base = break.base + ceil(chargeable - break.from_kg) * break.per_kg. Boundaries are inclusive of the break below: chargeable of exactly 5.0 selects the up_to_kg 5 break, not the 5-to-20 break.",
+    "fuel_surcharge": "pct of base, rounded, then capped at cap_minor if cap_minor is present. Round before capping.",
+    "oversize": "flat surcharge if any single dimension exceeds oversize_over_cm. Strictly greater than: exactly 120 is not oversize.",
+    "remote_area": "flat surcharge if the destination postcode starts with any listed prefix. Compare case-insensitively with all whitespace removed from the postcode.",
+    "handling_fee": "charged once per quote request. Waived entirely for merchants whose account tier is in waived_for_tiers.",
+    "transit": "transit_business_days, counted Mon-Fri excluding origin-country holidays. Day 1 is the first business day strictly AFTER the quote date in the origin timezone; the quote date itself is never counted, whether or not it is a business day. If the quote is requested at or after cutoff_local in the origin location's timezone, add 1 to transit_business_days before counting.",
+    "tax": "tax_pct applied to (base + all surcharges, including the handling fee), rounded",
+    "total": "base + surcharges + tax",
+    "holidays": "The holidays block is this contract's non-operating calendar and is authoritative. Do not supplement it with public holiday data. A date in a year not listed has no holidays."
+  },
+
+  "zones": {
+    "A": { "lanes": ["US-US"], "tax_pct": 0.0 },
+    "B": { "lanes": ["US-CA", "CA-US", "US-MX"], "tax_pct": 5.0 },
+    "C": { "lanes": ["US-GB", "US-DE", "US-AU", "GB-US", "DE-US"], "tax_pct": 0.0 }
+  },
+
+  "rates": {
+    "A": {
+      "volumetric_divisor": 6000,
+      "weight_breaks": [
+        { "up_to_kg": 1, "flat": 799 },
+        { "up_to_kg": 5, "flat": 1249 },
+        { "up_to_kg": 20, "from_kg": 5, "base": 1249, "per_kg": 96 },
+        { "up_to_kg": null, "from_kg": 20, "base": 2689, "per_kg": 74 }
+      ],
+      "fuel_surcharge": { "pct": 11.5 },
+      "transit_business_days": 3,
+      "cutoff_local": "17:00"
+    },
+    "B": {
+      "volumetric_divisor": 6000,
+      "weight_breaks": [
+        { "up_to_kg": 1, "flat": 1899 },
+        { "up_to_kg": 5, "flat": 2749 },
+        { "up_to_kg": 20, "from_kg": 5, "base": 2749, "per_kg": 184 },
+        { "up_to_kg": null, "from_kg": 20, "base": 5509, "per_kg": 151 }
+      ],
+      "fuel_surcharge": { "pct": 14.0 },
+      "transit_business_days": 6,
+      "cutoff_local": "15:30"
+    },
+    "C": {
+      "volumetric_divisor": 5000,
+      "weight_breaks": [
+        { "up_to_kg": 1, "flat": 3450 },
+        { "up_to_kg": 5, "flat": 4980 },
+        { "up_to_kg": 20, "from_kg": 5, "base": 4980, "per_kg": 366 },
+        { "up_to_kg": null, "from_kg": 20, "base": 10470, "per_kg": 298 }
+      ],
+      "fuel_surcharge": { "pct": 18.5, "cap_minor": 2200 },
+      "transit_business_days": 11,
+      "cutoff_local": "14:00"
+    }
+  },
+
+  "surcharges": {
+    "oversize": { "oversize_over_cm": 120, "flat_minor": 1850 },
+    "remote_area": {
+      "flat_minor": 1200,
+      "destination_postcode_prefixes": ["99", "96", "IV", "HS", "ZE", "0800", "0810"]
+    },
+    "handling_fee": { "flat_minor": 250, "waived_for_tiers": ["plus", "enterprise"] }
+  },
+
+  "holidays": {
+    "US": [
+      "2026-01-01", "2026-01-19", "2026-02-16", "2026-05-25", "2026-06-19",
+      "2026-07-03", "2026-09-07", "2026-11-11", "2026-11-26", "2026-12-25",
+      "2027-01-01", "2027-01-18", "2027-02-15", "2027-05-31", "2027-06-18",
+      "2027-07-05", "2027-09-06", "2027-11-11", "2027-11-25", "2027-12-24"
+    ],
+    "CA": [
+      "2026-01-01", "2026-04-03", "2026-05-18", "2026-07-01", "2026-09-07",
+      "2026-09-30", "2026-10-12", "2026-11-11", "2026-12-25", "2026-12-28",
+      "2027-01-01", "2027-03-26", "2027-05-24", "2027-07-01", "2027-09-06",
+      "2027-09-30", "2027-10-11", "2027-11-11", "2027-12-27", "2027-12-28"
+    ],
+    "GB": [
+      "2026-01-01", "2026-04-03", "2026-04-06", "2026-05-04", "2026-05-25",
+      "2026-08-31", "2026-12-25", "2026-12-28",
+      "2027-01-01", "2027-03-26", "2027-03-29", "2027-05-03", "2027-05-31",
+      "2027-08-30", "2027-12-27", "2027-12-28"
+    ],
+    "DE": [
+      "2026-01-01", "2026-04-03", "2026-04-06", "2026-05-01", "2026-05-14",
+      "2026-05-25", "2026-10-03", "2026-12-25", "2026-12-26",
+      "2027-01-01", "2027-03-26", "2027-03-29", "2027-05-01", "2027-05-06",
+      "2027-05-17", "2027-10-03", "2027-12-25", "2027-12-26"
+    ]
+  }
+}

@@ -1,0 +1,46 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: qqe
+      POSTGRES_PASSWORD: qqe
+      POSTGRES_DB: qqe
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qqe -d qqe"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    ports:
+      - "4000:4000"
+    environment:
+      PORT: 4000
+      DATABASE_URL: postgresql://qqe:qqe@postgres:5432/qqe
+      PROVIDER_SEED: "42"
+      JWT_SECRET: change-me
+      FX_RATES: CAD:0.73,GBP:1.27,EUR:1.09
+      CARRIER_TIMEOUT_MS: "3000"
+      REQUEST_DEADLINE_MS: "3400"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
