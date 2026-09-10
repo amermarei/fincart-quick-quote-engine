@@ -1,6 +1,12 @@
 generator client {
-  provider      = "prisma-client-js"
-  binaryTargets = ["native", "debian-openssl-3.0.x"]
+  provider = "prisma-client-js"
+  // Pinned explicitly so the client bundles the right engine everywhere:
+  //   native                    -> local dev on any machine (resolved at generate)
+  //   debian-openssl-3.0.x      -> Docker on Intel/AMD (linux x64)
+  //   linux-arm64-openssl-3.0.x -> Docker on Apple Silicon (linux arm64)
+  // OpenSSL auto-detection is unreliable in containers (it can pick 1.1.x
+  // when only 3.0.x is present), so targets are never guessed.
+  binaryTargets = ["native", "debian-openssl-3.0.x", "linux-arm64-openssl-3.0.x"]
 }
 
 datasource db {
