@@ -14,3 +14,9 @@ Thumbs.db
 *.swp
 .vscode/
 .idea/
+
+# Stray TypeScript build emissions (tsc misconfiguration artifacts)
+*.js.map
+*.tsbuildinfo
+packages/shared/src/*.js
+packages/starter/src/*.js
